@@ -12,8 +12,8 @@ function run(x:number,y:number,grabX=0) {
 test('ordinary user input can land a whole fish for exactly 60 points',()=>{
   const r=run(75,-90);assert.equal(r.score.total,60);assert.equal(r.score.onTray,true);assert.ok(r.time<10);
 });
-test('a real off-centre throw can earn all 100 points without synthetic scoring state',()=>{
-  const r=run(60,-80,-32);assert.equal(r.score.total,100);assert.equal(r.score.flip,20);assert.equal(r.score.route,10);assert.equal(r.score.landing,10);
+test('a real off-centre throw earns ten points for every airborne rotation',()=>{
+  const r=run(60,-80,-32);assert.ok(r.turns>=2);assert.equal(r.score.total,80+r.turns*10);assert.equal(r.score.flip,r.turns*10);assert.equal(r.score.route,10);assert.equal(r.score.landing,10);
 });
 test('identical throws are deterministic',()=>{
   assert.deepEqual(run(60,-80,-32),run(60,-80,-32));
@@ -22,9 +22,10 @@ test('short drag cancels and cannot relaunch while airborne',()=>{
   const s=new Simulation();assert.equal(s.launch({x:1,y:1}),false);assert.equal(s.phase,'ready');
   assert.equal(s.launch({x:75,y:-90}),true);assert.equal(s.launch({x:75,y:-90}),false);s.dispose();
 });
-test('hard throws and bad angles remain finite, finish, and obey scoring cap',()=>{
+test('hard throws and bad angles remain finite and finish with consistent scores',()=>{
   for(const [x,y,grab] of [[145,0,0],[145,-145,52],[-145,-90,-52],[0,-145,32],[145,145,0]]) {
-    const r=run(x,y,grab);assert.ok(r.score.total>=0&&r.score.total<=100);
+    const r=run(x,y,grab);assert.ok(Number.isFinite(r.score.total)&&r.score.total>=0);
+    assert.equal(r.score.total,r.score.base+r.score.flip+r.score.route+r.score.landing);
     if(!r.score.onTray)assert.equal(r.score.flip+r.score.route+r.score.landing,0);
   }
 });

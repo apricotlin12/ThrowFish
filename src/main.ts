@@ -3,13 +3,15 @@ import { Simulation } from './physics';
 import { Renderer, type Drag } from './renderer';
 import { Sound } from './audio';
 import { WORLD, type Score } from './scoring';
+import { appendRecord, makeRecord, readRecords, RECORD_KEY, type ScoreRecord } from './records';
+import { loadLeaders } from './leaderboard';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = el<HTMLCanvasElement>('canvas');
 const read = (key: string): string | null => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* Playing remains available when storage is blocked. */ } };
 const savedBest = Number(read('throwfish.best'));
-let best = Number.isFinite(savedBest) ? Math.max(0, Math.min(100, Math.floor(savedBest))) : 0;
+let best = Number.isFinite(savedBest) ? Math.max(0, Math.floor(savedBest)) : 0;
 const sound = new Sound(read('throwfish.sound') === 'on');
 const renderer = new Renderer(canvas);
 let sim = new Simulation();
@@ -17,7 +19,62 @@ let drag: Drag | null = null;
 let paused = document.hidden;
 let last = performance.now(), accumulator = 0;
 let shownResult = false, trickKey = '';
+let attemptId = crypto.randomUUID();
+let records = readRecords(read(RECORD_KEY));
+let loadingLeaders = false;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+// A separate inspection view for the collector, without adding player controls.
+el('collected-records').hidden = new URLSearchParams(location.search).get('records') !== '1';
+
+function saveRecords(next: ScoreRecord[]) {
+  records = next;
+  let saved = true;
+  try { localStorage.setItem(RECORD_KEY, JSON.stringify(records)); } catch { saved = false; }
+  renderRecords(); return saved;
+}
+function renderRecords() {
+  el('record-count').textContent = String(records.length);
+  el('records-empty').hidden = records.length > 0;
+  el('records-table').hidden = records.length === 0;
+  el('record-rows').replaceChildren(...[...records].reverse().map(record => {
+    const row = document.createElement('tr'); row.dataset.recordId = record.id;
+    for (const value of [record.nickname || '無名丟魚手',record.total,record.flip,record.route,record.landing]) {
+      const cell = document.createElement('td'); cell.textContent = String(value); row.append(cell);
+    }
+    return row;
+  }));
+}
+async function refreshLeaders() {
+  if (loadingLeaders) return;
+  loadingLeaders = true; el<HTMLButtonElement>('refresh-leaders').disabled = true;
+  el('leader-status').textContent = '正在讀取排行榜…';
+  try {
+    const leaders = await loadLeaders();
+    el('leader-list').replaceChildren(...leaders.map((leader,index) => {
+      const item = document.createElement('li');
+      const rank = document.createElement('span'); rank.className = 'leader-rank'; rank.textContent = String(index + 1).padStart(2,'0');
+      const name = document.createElement('span'); name.className = 'leader-name'; name.textContent = leader.nickname || '無名丟魚手';
+      const score = document.createElement('strong'); score.textContent = `${leader.score} 分`;
+      item.append(rank,name,score); return item;
+    }));
+    el('leader-status').textContent = leaders.length ? '依排行榜已收錄的分數排序' : '還沒有紀錄，第一名正在等你。';
+  } catch {
+    el('leader-status').textContent = '排行榜暫時無法更新，請稍後重試。';
+  } finally {
+    loadingLeaders = false; el<HTMLButtonElement>('refresh-leaders').disabled = false;
+  }
+}
+el('registration-form').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!sim.score || sim.phase !== 'result' || records.some(r => r.id === attemptId)) return;
+  const nickname = el<HTMLInputElement>('nickname').value;
+  const record = makeRecord(attemptId,nickname,sim.score);
+  const saved = saveRecords(appendRecord(records,record));
+  el<HTMLButtonElement>('register-score').disabled = true;
+  el('register-score').textContent = '本次已登記';
+  el('registration-status').textContent = saved ? `已收集 ${record.total} 分，等待整理到排行榜。` : '已收集；此瀏覽器無法保存紀錄，關閉頁面後可能遺失。';
+});
+el('refresh-leaders').addEventListener('click', () => void refreshLeaders());
 
 function updateSound() {
   el('sound').textContent = `音效 ${sound.enabled ? 'ON' : 'OFF'}`;
@@ -36,6 +93,11 @@ function cancelDrag() {
 function reset() {
   cancelDrag(); sim.dispose(); sim = new Simulation(); renderer.clear();
   shownResult = false; trickKey = ''; accumulator = 0;
+  attemptId = crypto.randomUUID();
+  el('registration').hidden = true;
+  el<HTMLButtonElement>('register-score').disabled = false;
+  el('register-score').textContent = '登記這次分數';
+  el('registration-status').textContent = '';
   el('result').hidden = true; el('tricks').replaceChildren();
   el('score').textContent = '—'; el('score').classList.remove('new-best');
   el('grab-hint').style.opacity = '1'; el('status').textContent = '準備好了，抓住魚！';
@@ -82,6 +144,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 el('restart').addEventListener('click', reset); el('again').addEventListener('click', reset); el('sound').addEventListener('click', toggleSound);
 document.addEventListener('keydown', event => {
   if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+  if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   if (event.key.toLowerCase() === 'r') reset();
   if (event.key.toLowerCase() === 'm') toggleSound();
 });
@@ -90,7 +153,7 @@ document.addEventListener('visibilitychange', () => pause(document.hidden));
 window.addEventListener('blur', () => pause(true)); window.addEventListener('focus', () => pause(document.hidden));
 function updateTricks() {
   const t=sim.tracker, labels:string[]=[];
-  if(t.turns) labels.push(`翻轉 ×${Math.min(2,t.turns)} +${Math.min(2,t.turns)*10}`);
+  if(t.turns) labels.push(`翻轉 ×${t.turns} +${t.turns*10}`);
   if(t.highLob || t.bounce) labels.push(`${t.highLob ? '高拋' : '彈跳'} +10`);
   const key=labels.join('|'); if(key===trickKey)return;trickKey=key;
   el('tricks').replaceChildren(...labels.map(text=>{const tag=document.createElement('span');tag.className='trick';tag.textContent=`${text} · 暫存`;return tag;}));
@@ -105,12 +168,14 @@ function result(score: Score) {
     sim.finishLocation === 'oven-top' ? '烤箱上面，不是裡面。' :
     sim.finishLocation === 'out-of-view' ? '魚飛出畫面了！' :
     sim.finishLocation === 'counter' ? '魚還在料理台上。' : '還差一點，沒進烤箱。';
-  el('result-title').textContent=score.total===100?'完美入爐！':score.total>=80?'魚體操選手！':score.onTray?'魚上盤了！':score.timedOut?'還沒落穩。':score.inside?'入爐了，但沒上盤。':missedTitle;
-  el('result-description').textContent=score.onTray ? (score.total===100?'這條魚的飛行，無可挑剔。':score.total>=80?'動作漂亮，最後也收得住。':'及格！下一條，試著加點花式。') : score.timedOut ? '等了十秒還在動，這次花式不入帳。' : sim.tracker.turns || sim.tracker.highLob || sim.tracker.bounce ? '動作很好，魚沒上盤。花式不入帳。':'整條魚停在烤盤上，才能拿到 60 分。';
+  el('result-title').textContent=score.total>=100?'飛行高手！':score.total>=80?'魚體操選手！':score.onTray?'魚上盤了！':score.timedOut?'還沒落穩。':score.inside?'入爐了，但沒上盤。':missedTitle;
+  el('result-description').textContent=score.onTray ? (score.total>=100?'轉幾圈就算幾圈，繼續挑戰更高分。':score.total>=80?'動作漂亮，最後也收得住。':'及格！下一條，試著加點花式。') : score.timedOut ? '等了十秒還在動，這次花式不入帳。' : sim.tracker.turns || sim.tracker.highLob || sim.tracker.bounce ? '動作很好，魚沒上盤。花式不入帳。':'整條魚停在烤盤上，才能拿到 60 分。';
   const rows: [string,number][]=[['基礎分',score.base],['空中翻轉',score.flip],[sim.tracker.highLob?'高拋路線':'彈跳路線',score.route],['漂亮落盤',score.landing]];
   el('breakdown').replaceChildren(...rows.map(([label,value])=>{const row=document.createElement('div');if(!value)row.className='muted';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=`${value===0?'': '+'}${value}`;row.append(name,number);return row;}));
   for(const tag of el('tricks').children){tag.textContent=tag.textContent!.replace(' · 暫存',score.onTray?' ✓':' · 未入帳');if(!score.onTray)tag.classList.add('invalid');}
   el('result').hidden=false;
+  el('registration').hidden=false;
+  el('registration-score').textContent = String(score.total);
   el('status').textContent=score.onTray?'成功落盤，分數入帳':'投擲結束，再來一條';
   el('instruction').textContent = score.onTray ? '✓ 整條魚完整落盤 · 花式有效' : '↻ 再試一次，讓整條魚停在烤盤上';
   el('power').textContent='R 快速重來';
@@ -128,4 +193,4 @@ function frame(now: number) {
   }
   requestAnimationFrame(frame);
 }
-el('best').textContent=String(best).padStart(2,'0');updateSound();renderer.draw(sim,null,0,reduced.matches);requestAnimationFrame(frame);
+el('best').textContent=String(best).padStart(2,'0');renderRecords();void refreshLeaders();updateSound();renderer.draw(sim,null,0,reduced.matches);requestAnimationFrame(frame);

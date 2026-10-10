@@ -7,11 +7,13 @@ const state = (override: Partial<FinishState> = {}): FinishState => ({
   center:{ x:762,y:386 },angle:0,trayContact:true,otherSupport:false,settled:true,timedOut:false,
   turns:0,highLob:false,bounce:false,...override,
 });
-test('ordinary complete tray landing passes; perfect tricks reach exactly 100',()=>{
+test('ordinary complete tray landing passes; each rotation earns ten points without a cap',()=>{
   assert.equal(evaluateScore(state({center:{x:720,y:386}})).total,60);
   const score=evaluateScore(state({turns:3,highLob:true,bounce:true}));
-  assert.equal(score.total,100);assert.equal(score.route,10);assert.equal(score.flip,20);
+  assert.equal(score.total,110);assert.equal(score.route,10);assert.equal(score.flip,30);
   assert.equal(score.base+score.flip+score.route+score.landing,score.total);
+  assert.equal(evaluateScore(state({turns:20.9})).flip,200);
+  assert.equal(evaluateScore(state({turns:20.9})).total,270);
 });
 test('tail hanging outside tray invalidates all tricks even when fish centre is above it',()=>{
   const score=evaluateScore(state({vertices:[{x:644,y:380},{x:756,y:380},{x:756,y:402},{x:644,y:402}],turns:2,highLob:true}));

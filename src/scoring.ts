@@ -40,11 +40,11 @@ export function evaluateScore(s: FinishState): Score {
     b.minX >= t.left - 1 && b.maxX <= t.right + 1 && s.center.y < t.top &&
     b.maxY >= t.top - 3 && b.maxY <= t.top + 3;
   const base = onTray ? 60 : inside ? 40 : 0;
-  const flip = onTray ? Math.min(2, Math.max(0, Math.floor(s.turns))) * 10 : 0;
+  const flip = onTray ? Math.max(0, Math.floor(s.turns)) * 10 : 0;
   const route = onTray && (s.highLob || s.bounce) ? 10 : 0;
   const horizontal = Math.abs(Math.atan2(Math.sin(2 * s.angle), Math.cos(2 * s.angle))) / 2;
   const landing = onTray && Math.abs(s.center.x - (t.left + t.right) / 2) <= (t.right - t.left) * .15 && horizontal <= Math.PI / 12 ? 10 : 0;
-  return { total: Math.min(100, base + flip + route + landing), base, flip, route, landing, onTray, inside, timedOut: s.timedOut };
+  return { total: base + flip + route + landing, base, flip, route, landing, onTray, inside, timedOut: s.timedOut };
 }
 
 /** Track signed displacement, so oscillations cannot accumulate fake rotations. */
