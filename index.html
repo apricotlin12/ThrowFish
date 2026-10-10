@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f5ec" />
+    <meta name="description" content="抓住生魚、拉一下、丟進烤箱。完整落盤才及格，花式挑戰 100 分。" />
+    <title>ThrowFish — 今天，丟一條魚。</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23254142'/%3E%3Cpath d='M8 17v14l9-5 6 6h12l7-8-7-8H23l-6 6z' fill='%2398c6bb'/%3E%3Crect x='33' y='20' width='4' height='4' fill='%23254142'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <a class="brand" href="./" aria-label="ThrowFish 首頁"><span class="brand-fish" aria-hidden="true">➜</span> THROWFISH<span class="brand-tag">小小廚房實驗室</span></a>
+        <span class="edition">NO. 001 <span>／</span> 丟魚練習</span>
+      </header>
+      <section class="intro" aria-labelledby="title">
+        <div><p class="eyebrow"><span class="live-dot"></span> ONE FISH. ONE OVEN.</p><h1 id="title">今天，丟一條魚<span class="accent">。</span></h1><p class="lead">目標很單純：把魚丟進烤盤。至於怎麼飛進去，就看你的了。</p></div>
+        <div class="scoreboard"><div><span class="metric-label">本次分數</span><span class="metric"><b id="score">—</b><small>/ 100</small></span></div><div class="best"><span class="metric-label">個人最佳</span><span class="metric"><b id="best">00</b><small>分</small></span></div></div>
+      </section>
+      <section class="game" aria-label="丟魚遊戲">
+        <div class="game-toolbar"><span class="status"><span id="status-dot"></span><span id="status">準備好了，抓住魚！</span></span><div class="toolbar-actions"><button id="sound" class="quiet-button" aria-pressed="false" aria-label="開啟音效">音效 OFF</button><span class="divider"></span><button id="restart" class="quiet-button">↻ 重新開始 <kbd>R</kbd></button></div></div>
+        <div class="stage"><canvas id="canvas" width="960" height="540" aria-label="固定鏡頭的像素廚房。拖曳左邊的魚，放開丟向右邊烤箱。"></canvas>
+          <span class="scene-label launch-label" id="grab-hint">抓住魚，往後拉 <span>↙</span></span><span class="scene-label oven-label">目標：烤盤</span>
+          <div id="tricks" class="tricks" aria-live="polite"></div>
+          <div id="paused" class="pause-message" hidden>已暫停 · 回到畫面繼續</div>
+          <div class="result" id="result" hidden role="status"><p id="result-kicker" class="eyebrow">本次投擲</p><h2 id="result-title">魚上盤了！</h2><p id="result-description"></p><div id="breakdown" class="breakdown"></div><button id="again" class="primary-button">再丟一條 <span>↗</span></button></div>
+        </div>
+        <div class="game-footer"><span id="instruction"><span class="key-icon">↖</span> 按住魚 → 往後拉 → 放開丟出</span><span id="power">抓中間直飛 · 抓頭尾翻轉</span></div>
+      </section>
+      <p class="portrait-hint">手機轉成橫向，魚會飛得更盡興。</p>
+      <section class="rules" aria-label="玩法與計分"><article><span class="rule-number">01</span><div><h3>先求一個及格</h3><p>整條魚完整停在烤盤上，<strong>60 分</strong>入袋。</p></div><span class="rule-symbol" aria-hidden="true">▰</span></article><article><span class="rule-number">02</span><div><h3>再耍一點花式</h3><p>翻轉、高拋、彈跳，技巧最多再加 <strong>40 分</strong>。</p></div><span class="rule-symbol" aria-hidden="true">⟳</span></article><article><span class="rule-number">03</span><div><h3>最後要收得漂亮</h3><p>沒有完整落盤？剛才的花式就不算分。</p></div><span class="rule-symbol" aria-hidden="true">✧</span></article></section>
+      <details class="score-guide"><summary>計分小抄 <span>＋</span></summary><div class="guide-grid"><p>未完整入爐 <b>0 分</b><br>進烤箱、沒上盤 <b>40 分</b><br>整條魚完整落盤 <b>60 分</b></p><p>翻一圈 <b>+10</b> ／ 兩圈以上 <b>+20</b><br>高拋或有效彈跳 <b>+10</b>（不重複）<br>落在中央且平穩 <b>+10</b></p><p>花式只計算到首次碰到烤盤。<br>等魚停穩才結算；最高 <b>100 分</b>。<br>按 <b>R</b> 重來、<b>M</b> 切換音效。</p></div></details>
+      <footer class="page-footer"><span>一條魚的飛行，也可以很有講究。</span><span>MADE FOR A LITTLE FUN <span class="footer-dot">✳</span></span></footer>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
