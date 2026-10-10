@@ -3,8 +3,9 @@ import { Simulation } from './physics';
 import { Renderer, type Drag } from './renderer';
 import { Sound } from './audio';
 import { WORLD, type Score } from './scoring';
-import { canRegisterScore } from './records';
+import { canRegisterScore, makeRecord, type ScoreRecord } from './records';
 import { loadLeaders } from './leaderboard';
+import { submitScore } from './score-service';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const canvas = el<HTMLCanvasElement>('canvas');
@@ -19,14 +20,16 @@ let drag: Drag | null = null;
 let paused = document.hidden;
 let last = performance.now(), accumulator = 0;
 let shownResult = false, trickKey = '';
-let loadingLeaders = false;
+let leaderRequest = 0;
+let submission: { id: string; record?: ScoreRecord; pending: boolean; saved: boolean } = { id: crypto.randomUUID(), pending: false, saved: false };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 async function refreshLeaders() {
-  if (loadingLeaders) return;
-  loadingLeaders = true; el<HTMLButtonElement>('refresh-leaders').disabled = true;
+  const request = ++leaderRequest;
+  el<HTMLButtonElement>('refresh-leaders').disabled = true;
   el('leader-status').textContent = '正在讀取排行榜…';
   try {
     const leaders = await loadLeaders();
+    if (request !== leaderRequest) return;
     el('leader-list').replaceChildren(...leaders.map((leader,index) => {
       const item = document.createElement('li');
       const rank = document.createElement('span'); rank.className = 'leader-rank'; rank.textContent = String(index + 1).padStart(2,'0');
@@ -36,16 +39,38 @@ async function refreshLeaders() {
     }));
     el('leader-status').textContent = leaders.length ? '依排行榜已收錄的分數排序' : '還沒有紀錄，第一名正在等你。';
   } catch {
+    if (request !== leaderRequest) return;
     el('leader-status').textContent = '排行榜暫時無法更新，請稍後重試。';
   } finally {
-    loadingLeaders = false; el<HTMLButtonElement>('refresh-leaders').disabled = false;
+    if (request === leaderRequest) el<HTMLButtonElement>('refresh-leaders').disabled = false;
   }
 }
-el('registration-form').addEventListener('submit', event => {
+el('registration-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if (!canRegisterScore(sim.score) || sim.phase !== 'result') return;
-  // Keep registration unavailable until a real remote writer is connected.
-  el('registration-status').textContent = '即時分數登記尚未接通，目前無法登記。';
+  if (!canRegisterScore(sim.score) || sim.phase !== 'result' || submission.pending || submission.saved) return;
+  const current = submission;
+  current.record ??= makeRecord(current.id,el<HTMLInputElement>('nickname').value,sim.score);
+  current.pending = true;
+  el<HTMLButtonElement>('register-score').disabled = true;
+  el<HTMLInputElement>('nickname').disabled = true;
+  el('register-score').textContent = '登記中…';
+  el('registration-status').textContent = '正在寫入分數，請稍候…';
+  try {
+    await submitScore(current.record);
+    current.saved = true;
+    if (submission === current) {
+      el('register-score').textContent = '已登記';
+      el('registration-status').textContent = '分數已寫入，正在更新排行榜…';
+    }
+    await refreshLeaders();
+    if (submission === current) el('registration-status').textContent = '分數已寫入。';
+  } catch (error) {
+    if (submission === current) {
+      el<HTMLButtonElement>('register-score').disabled = false;
+      el('register-score').textContent = '重試登記';
+      el('registration-status').textContent = error instanceof Error ? error.message : '登記失敗，請稍後重試。';
+    }
+  } finally { current.pending = false; }
 });
 el('refresh-leaders').addEventListener('click', () => void refreshLeaders());
 
@@ -66,10 +91,12 @@ function cancelDrag() {
 function reset() {
   cancelDrag(); sim.dispose(); sim = new Simulation(); renderer.clear();
   shownResult = false; trickKey = ''; accumulator = 0;
+  submission = { id: crypto.randomUUID(), pending: false, saved: false };
   el('registration').hidden = true;
   el<HTMLButtonElement>('register-score').disabled = true;
   el('register-score').textContent = '登記這次分數';
-  el('registration-status').textContent = '即時分數登記尚未接通，目前無法登記。';
+  el('registration-status').textContent = '';
+  el<HTMLInputElement>('nickname').disabled = false;
   el('result').hidden = true; el('tricks').replaceChildren();
   el('score').textContent = '—'; el('score').classList.remove('new-best');
   el('grab-hint').style.opacity = '1'; el('status').textContent = '準備好了，抓住魚！';
@@ -147,6 +174,7 @@ function result(score: Score) {
   for(const tag of el('tricks').children){tag.textContent=tag.textContent!.replace(' · 暫存',score.onTray?' ✓':' · 未入帳');if(!score.onTray)tag.classList.add('invalid');}
   el('result').hidden=false;
   el('registration').hidden=!canRegisterScore(score);
+  el<HTMLButtonElement>('register-score').disabled = !canRegisterScore(score);
   el('registration-score').textContent = String(score.total);
   el('status').textContent=score.onTray?'成功落盤，分數入帳':'投擲結束，再來一條';
   el('instruction').textContent = score.onTray ? '✓ 整條魚完整落盤 · 花式有效' : '↻ 再試一次，讓整條魚停在烤盤上';
