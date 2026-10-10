@@ -84,6 +84,14 @@ test('Apps Script maps reordered headers and returns only positive top-three nic
   assert.equal(s.get({action:'submit'}).error,'unknown_action');
   assert.equal(s.rows.length,7);
 });
+test('Apps Script equal scores prefer newer lower rows, including ties at the top-three cutoff',()=>{
+  const s=service([headers,
+    ['舊紀錄',100,20,10,10],['最高分',180,100,10,10],
+    ['中間紀錄',100,20,10,10],['零分',0,0,0,0],['最新紀錄',100,20,10,10],
+  ]);
+  assert.deepEqual(s.get().leaders,[{nickname:'最高分',score:180},{nickname:'最新紀錄',score:100},{nickname:'中間紀錄',score:100}]);
+  assert.deepEqual(s.rows[1],['舊紀錄',100,20,10,10]);
+});
 test('Apps Script nicknames remain text and JSONP callbacks cannot inject executable expressions',()=>{
   const s=service();
   s.post(payload({nickname:'=IMPORTXML("url","x")'}));

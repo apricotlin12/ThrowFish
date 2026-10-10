@@ -156,9 +156,13 @@ function topThree_() {
   const columns = columnMap_(sheet);
   if (sheet.getLastRow() < 2) return [];
   return sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues()
-    .filter(function (row) { return typeof row[columns.total] === 'number' && Number.isSafeInteger(row[columns.total]) && row[columns.total] > 0; })
-    .map(function (row) { return { nickname: String(row[columns.nickname] || '').trim(), score: row[columns.total] }; })
-    .sort(function (a, b) { return b.score - a.score; }).slice(0, 3);
+    .map(function (row, index) {
+      return { nickname: String(row[columns.nickname] || '').trim(), score: row[columns.total], row: index + 2 };
+    })
+    .filter(function (entry) { return typeof entry.score === 'number' && Number.isSafeInteger(entry.score) && entry.score > 0; })
+    // Higher scores first; equal scores prefer the lower (newer) spreadsheet row.
+    .sort(function (a, b) { return b.score - a.score || b.row - a.row; }).slice(0, 3)
+    .map(function (entry) { return { nickname: entry.nickname, score: entry.score }; });
 }
 
 function publicError_(error) {

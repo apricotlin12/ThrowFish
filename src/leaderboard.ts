@@ -9,6 +9,7 @@ export function parseLeaders(response: LeaderResponse): Leader[] {
     const row = value as Record<string,unknown>;
     if (typeof row.score !== 'number' || !Number.isSafeInteger(row.score) || row.score <= 0) return [];
     return [{nickname:typeof row.nickname === 'string' ? row.nickname.trim() : '',score:row.score}];
+  // Stable sorting preserves the service's newer-first order for equal scores.
   }).sort((a,b)=>b.score-a.score).slice(0,3);
 }
 export async function loadLeaders(): Promise<Leader[]> {

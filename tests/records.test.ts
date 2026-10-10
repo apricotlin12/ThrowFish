@@ -47,6 +47,11 @@ test('service leaderboard is numeric, includes anonymous players, excludes zero,
   assert.deepEqual(parseLeaders({ok:true,leaders:[]}),[]);
   assert.throws(() => parseLeaders({ok:false}));
 });
+test('frontend preserves newer-first server ordering for equal scores', () => {
+  assert.deepEqual(parseLeaders({ok:true,leaders:[
+    {nickname:'最新',score:100},{nickname:'較舊',score:100},{nickname:'最舊',score:100},
+  ]}),[{nickname:'最新',score:100},{nickname:'較舊',score:100},{nickname:'最舊',score:100}]);
+});
 test('leaderboard uses the deployed Apps Script instead of the spreadsheet sharing URL', () => {
   const url = new URL(serviceUrl('leaderboard','throwfish_test'));
   assert.equal(url.origin+url.pathname,SCORE_SERVICE_URL);
