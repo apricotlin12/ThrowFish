@@ -101,7 +101,11 @@ function result(score: Score) {
   if(record){ best=score.total; write('throwfish.best',String(best)); el('score').classList.add('new-best'); }
   el('score').textContent = String(score.total).padStart(2,'0'); el('best').textContent=String(best).padStart(2,'0');
   el('result-kicker').textContent=record?'NEW BEST / 新紀錄':'本次投擲 / RESULT';
-  el('result-title').textContent=score.total===100?'完美入爐！':score.total>=80?'魚體操選手！':score.onTray?'魚上盤了！':score.timedOut?'還沒落穩。':score.inside?'入爐了，但沒上盤。':'地板料理，先不要。';
+  const missedTitle = sim.finishLocation === 'floor' ? '在地料理，先不要。' :
+    sim.finishLocation === 'oven-top' ? '烤箱上面，不是裡面。' :
+    sim.finishLocation === 'out-of-view' ? '魚飛出畫面了！' :
+    sim.finishLocation === 'counter' ? '魚還在料理台上。' : '還差一點，沒進烤箱。';
+  el('result-title').textContent=score.total===100?'完美入爐！':score.total>=80?'魚體操選手！':score.onTray?'魚上盤了！':score.timedOut?'還沒落穩。':score.inside?'入爐了，但沒上盤。':missedTitle;
   el('result-description').textContent=score.onTray ? (score.total===100?'這條魚的飛行，無可挑剔。':score.total>=80?'動作漂亮，最後也收得住。':'及格！下一條，試著加點花式。') : score.timedOut ? '等了十秒還在動，這次花式不入帳。' : sim.tracker.turns || sim.tracker.highLob || sim.tracker.bounce ? '動作很好，魚沒上盤。花式不入帳。':'整條魚停在烤盤上，才能拿到 60 分。';
   const rows: [string,number][]=[['基礎分',score.base],['空中翻轉',score.flip],[sim.tracker.highLob?'高拋路線':'彈跳路線',score.route],['漂亮落盤',score.landing]];
   el('breakdown').replaceChildren(...rows.map(([label,value])=>{const row=document.createElement('div');if(!value)row.className='muted';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=`${value===0?'': '+'}${value}`;row.append(name,number);return row;}));

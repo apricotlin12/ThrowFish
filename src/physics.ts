@@ -1,7 +1,8 @@
 import Matter from 'matter-js';
-import { WORLD, TrickTracker, evaluateScore, type Score, type Point } from './scoring';
+import { WORLD, TrickTracker, evaluateScore, bounds, type Score, type Point } from './scoring';
 const { Engine, Bodies, Body, Composite, Events } = Matter;
 export type Phase = 'ready' | 'dragging' | 'flying' | 'result';
+export type FinishLocation = 'oven' | 'oven-top' | 'floor' | 'counter' | 'out-of-view' | 'elsewhere';
 export interface Impact { x: number; y: number; strength: number; tray: boolean }
 export class Simulation {
   engine: Matter.Engine;
@@ -11,9 +12,11 @@ export class Simulation {
   time = 0;
   stableTime = 0;
   score: Score | null = null;
+  finishLocation: FinishLocation | null = null;
   impacts: Impact[] = [];
   trayContact = false;
   otherSupport = false;
+  private contacts = new Set<string>();
   private lastImpact = -1;
   private incomingSpeed = 0;
   private pendingBounce = false;
@@ -86,10 +89,11 @@ export class Simulation {
         const v = this.fish.velocity, before = this.incomingVelocity;
         if (v.x * before.x + v.y * before.y < 0 && this.fish.speed > 1) this.tracker.bounce = true;
       }
-      this.trayContact = false; this.otherSupport = false;
+      this.trayContact = false; this.otherSupport = false; this.contacts.clear();
       for (const pair of this.engine.pairs.list) {
         if (!pair.isActive || (pair.bodyA !== this.fish && pair.bodyB !== this.fish)) continue;
         const other = pair.bodyA === this.fish ? pair.bodyB : pair.bodyA;
+        this.contacts.add(other.label);
         if (other.label === 'tray' && this.fish.position.y < WORLD.tray.top) this.trayContact = true;
         else this.otherSupport = true;
       }
@@ -105,6 +109,11 @@ export class Simulation {
       angle: this.fish.angle, trayContact: this.trayContact, otherSupport: this.otherSupport,
       settled: this.stableTime >= .8, timedOut, turns: this.tracker.turns,
       highLob: this.tracker.highLob, bounce: this.tracker.bounce });
+    const b = bounds(this.fish.vertices);
+    const outside = b.maxX < 0 || b.minX > WORLD.width || b.maxY < 0 || b.minY > WORLD.height;
+    this.finishLocation = this.score.inside ? 'oven' : outside ? 'out-of-view' :
+      this.contacts.has('roof') && this.fish.position.y < 210 ? 'oven-top' :
+      this.contacts.has('floor') ? 'floor' : this.contacts.has('counter') ? 'counter' : 'elsewhere';
     this.phase = 'result';
   }
   dispose() { Events.off(this.engine, 'collisionStart'); Composite.clear(this.engine.world, false); Engine.clear(this.engine); }

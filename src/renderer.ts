@@ -2,6 +2,12 @@ import { WORLD, type Point } from './scoring';
 import { Simulation, type Impact } from './physics';
 export interface Drag { anchor: Point; current: Point; grab: Point; id: number }
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; color: string }
+const COOKED_COLORS: Record<string, string> = {
+  '#395956': '#6a4434', '#6b9a8d': '#a66b42', '#80ad9d': '#c7905a',
+  '#8bb6a4': '#d7a567', '#84b2a2': '#cf955b', '#9ac5af': '#e1b879',
+  '#c9d7b7': '#f4d7a1', '#659488': '#ad7445', '#527b73': '#865c3d',
+  '#6c9f91': '#b67a48', '#5f8e82': '#9d693d',
+};
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -51,7 +57,7 @@ export class Renderer {
       c.globalAlpha = .16;
       const shadowY = f.position.x >= 628 && f.position.x <= 886 ? 446 : 478;
       r(f.position.x - 42, shadowY,84,4,'#253e3d'); c.globalAlpha=1;
-      this.drawFish(c, f.position.x, f.position.y, f.angle, reduced ? 0 : this.hit);
+      this.drawFish(c, f.position.x, f.position.y, f.angle, reduced ? 0 : this.hit, sim.score?.inside === true);
     }
     if (drag) {
       let dx = drag.anchor.x - drag.current.x, dy = drag.anchor.y - drag.current.y;
@@ -66,15 +72,15 @@ export class Renderer {
     for (const p of this.particles) { p.life-=dt;if(!reduced){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;c.globalAlpha=Math.min(1,Math.max(0,p.life*4));r(p.x,p.y,4,4,p.color);} } c.globalAlpha=1;
     // A narrow tray front lip foreground makes the landing surface legible.
     r(660,408,204,4,'#829998');r(664,412,196,4,'#567976');
-    if (sim.score?.onTray && !reduced) {
+    if (sim.score?.inside && !reduced) {
       c.globalAlpha=.35;
       for(let n=0;n<3;n++){const y=370-((this.clock*20+n*12)%45);r(f.position.x-22+n*20+Math.sin(y/12)*4,y,4,8,'#f3eccf');}c.globalAlpha=1;
     }
   }
-  private drawFish(c: CanvasRenderingContext2D,x:number,y:number,a:number,hit:number) {
+  private drawFish(c: CanvasRenderingContext2D,x:number,y:number,a:number,hit:number,cooked=false) {
     c.save();c.translate(Math.round(x),Math.round(y));c.rotate(a);
     c.scale(1+hit*.08,1-hit*.12);
-    const p=(x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
+    const p=(x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=cooked ? COOKED_COLORS[color] ?? color : color;c.fillRect(x,y,w,h);};
     // Pixel silhouette: tail, body, fins and an unnecessarily serious eye.
     p(-56,-12,8,24,'#395956');p(-48,-8,8,16,'#395956');p(-40,-12,12,24,'#395956');
     p(-28,-16,60,32,'#395956');p(32,-12,12,24,'#395956');p(44,-8,8,16,'#395956');p(52,-4,4,12,'#395956');
