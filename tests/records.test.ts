@@ -1,9 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendRecord, makeRecord, readRecords } from '../src/records';
+import { appendRecord, canRegisterScore, makeRecord, readRecords } from '../src/records';
 import { parseLeaders, leaderboardUrl, SHEET_ID } from '../src/leaderboard';
 
 const score = {total:140,base:60,flip:60,route:10,landing:10,onTray:true,inside:true,timedOut:false};
+test('zero scores cannot register, even through the underlying record functions', () => {
+  for (const total of [0,-1,NaN,Infinity]) {
+    const invalid = {...score,total};
+    assert.equal(canRegisterScore(invalid),false);
+    assert.throws(() => makeRecord('zero','',invalid));
+    assert.deepEqual(appendRecord([],{id:'zero',nickname:'',total,flip:0,route:0,landing:0,createdAt:''}),[]);
+  }
+  assert.equal(canRegisterScore(null),false);
+  assert.equal(canRegisterScore({...score,total:40}),true);
+  assert.equal(canRegisterScore(score),true);
+});
 test('nickname is optional and high scores retain their column values', () => {
   const record = makeRecord('one','  ',score,'2026-10-10T00:00:00Z');
   assert.equal(record.nickname,'');

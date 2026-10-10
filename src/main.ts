@@ -3,7 +3,7 @@ import { Simulation } from './physics';
 import { Renderer, type Drag } from './renderer';
 import { Sound } from './audio';
 import { WORLD, type Score } from './scoring';
-import { appendRecord, makeRecord, readRecords, RECORD_KEY, type ScoreRecord } from './records';
+import { canRegisterScore } from './records';
 import { loadLeaders } from './leaderboard';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -19,31 +19,8 @@ let drag: Drag | null = null;
 let paused = document.hidden;
 let last = performance.now(), accumulator = 0;
 let shownResult = false, trickKey = '';
-let attemptId = crypto.randomUUID();
-let records = readRecords(read(RECORD_KEY));
 let loadingLeaders = false;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-// A separate inspection view for the collector, without adding player controls.
-el('collected-records').hidden = new URLSearchParams(location.search).get('records') !== '1';
-
-function saveRecords(next: ScoreRecord[]) {
-  records = next;
-  let saved = true;
-  try { localStorage.setItem(RECORD_KEY, JSON.stringify(records)); } catch { saved = false; }
-  renderRecords(); return saved;
-}
-function renderRecords() {
-  el('record-count').textContent = String(records.length);
-  el('records-empty').hidden = records.length > 0;
-  el('records-table').hidden = records.length === 0;
-  el('record-rows').replaceChildren(...[...records].reverse().map(record => {
-    const row = document.createElement('tr'); row.dataset.recordId = record.id;
-    for (const value of [record.nickname || '無名丟魚手',record.total,record.flip,record.route,record.landing]) {
-      const cell = document.createElement('td'); cell.textContent = String(value); row.append(cell);
-    }
-    return row;
-  }));
-}
 async function refreshLeaders() {
   if (loadingLeaders) return;
   loadingLeaders = true; el<HTMLButtonElement>('refresh-leaders').disabled = true;
@@ -66,13 +43,9 @@ async function refreshLeaders() {
 }
 el('registration-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (!sim.score || sim.phase !== 'result' || records.some(r => r.id === attemptId)) return;
-  const nickname = el<HTMLInputElement>('nickname').value;
-  const record = makeRecord(attemptId,nickname,sim.score);
-  const saved = saveRecords(appendRecord(records,record));
-  el<HTMLButtonElement>('register-score').disabled = true;
-  el('register-score').textContent = '本次已登記';
-  el('registration-status').textContent = saved ? `已收集 ${record.total} 分，等待整理到排行榜。` : '已收集；此瀏覽器無法保存紀錄，關閉頁面後可能遺失。';
+  if (!canRegisterScore(sim.score) || sim.phase !== 'result') return;
+  // Keep registration unavailable until a real remote writer is connected.
+  el('registration-status').textContent = '即時分數登記尚未接通，目前無法登記。';
 });
 el('refresh-leaders').addEventListener('click', () => void refreshLeaders());
 
@@ -93,11 +66,10 @@ function cancelDrag() {
 function reset() {
   cancelDrag(); sim.dispose(); sim = new Simulation(); renderer.clear();
   shownResult = false; trickKey = ''; accumulator = 0;
-  attemptId = crypto.randomUUID();
   el('registration').hidden = true;
-  el<HTMLButtonElement>('register-score').disabled = false;
+  el<HTMLButtonElement>('register-score').disabled = true;
   el('register-score').textContent = '登記這次分數';
-  el('registration-status').textContent = '';
+  el('registration-status').textContent = '即時分數登記尚未接通，目前無法登記。';
   el('result').hidden = true; el('tricks').replaceChildren();
   el('score').textContent = '—'; el('score').classList.remove('new-best');
   el('grab-hint').style.opacity = '1'; el('status').textContent = '準備好了，抓住魚！';
@@ -174,7 +146,7 @@ function result(score: Score) {
   el('breakdown').replaceChildren(...rows.map(([label,value])=>{const row=document.createElement('div');if(!value)row.className='muted';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=`${value===0?'': '+'}${value}`;row.append(name,number);return row;}));
   for(const tag of el('tricks').children){tag.textContent=tag.textContent!.replace(' · 暫存',score.onTray?' ✓':' · 未入帳');if(!score.onTray)tag.classList.add('invalid');}
   el('result').hidden=false;
-  el('registration').hidden=false;
+  el('registration').hidden=!canRegisterScore(score);
   el('registration-score').textContent = String(score.total);
   el('status').textContent=score.onTray?'成功落盤，分數入帳':'投擲結束，再來一條';
   el('instruction').textContent = score.onTray ? '✓ 整條魚完整落盤 · 花式有效' : '↻ 再試一次，讓整條魚停在烤盤上';
@@ -193,4 +165,4 @@ function frame(now: number) {
   }
   requestAnimationFrame(frame);
 }
-el('best').textContent=String(best).padStart(2,'0');renderRecords();void refreshLeaders();updateSound();renderer.draw(sim,null,0,reduced.matches);requestAnimationFrame(frame);
+el('best').textContent=String(best).padStart(2,'0');void refreshLeaders();updateSound();renderer.draw(sim,null,0,reduced.matches);requestAnimationFrame(frame);
