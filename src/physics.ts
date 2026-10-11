@@ -97,7 +97,8 @@ export class Simulation {
         const other = pair.bodyA === this.fish ? pair.bodyB : pair.bodyA;
         this.contacts.add(other.label);
         if (other.label === 'tray' && this.fish.position.y < WORLD.tray.top) this.trayContact = true;
-        else this.otherSupport = true;
+        // Leaning against the inner back wall is fine when the tray also supports the fish.
+        else if (other.label !== 'back') this.otherSupport = true;
       }
       const slow = this.fish.speed < .18 && Math.abs(this.fish.angularVelocity) < .008;
       this.stableTime = slow ? this.stableTime + 1 / 240 : 0;

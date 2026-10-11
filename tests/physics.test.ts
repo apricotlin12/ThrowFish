@@ -45,7 +45,7 @@ test('resting on the oven roof is distinct from floor food and does not count as
 test('fish inside the oven is recognized with complete and incomplete tray landings',()=>{
   assert.equal(run(75,-90).location,'oven');
   const s=new Simulation();
-  Matter.Body.setPosition(s.fish,{x:706,y:360});s.launch({x:0,y:8});
+  Matter.Body.setPosition(s.fish,{x:684,y:360});s.launch({x:0,y:8});
   while(s.phase==='flying')s.step();
   assert.equal(s.finishLocation,'oven');assert.equal(s.score!.inside,true);assert.equal(s.score!.onTray,false);assert.equal(s.score!.total,40);
   s.dispose();
@@ -72,11 +72,30 @@ test('a visible fish fully on the tray counts even if its offset collider extend
   s.dispose();
 });
 
-test('rotating the fish does not hide a visible tail extending outside the tray',()=>{
+test('a rotated fish with a slightly protruding tail retains its trick points',()=>{
   const s=new Simulation();s.launch({x:68,y:-84},{x:-32,y:0});
   while(s.phase==='flying')s.step();
   assert.ok(bounds(visibleFishVertices(s.fish.position,s.fish.angle)).maxX>WORLD.tray.right+1);
-  assert.equal(s.score!.onTray,false);
-  assert.equal(s.score!.flip,0);
+  assert.equal(s.score!.onTray,true);
+  assert.ok(s.score!.flip>0);
   s.dispose();
+});
+
+test('a fish resting on the tray may lean against the inner wall',()=>{
+  const s=new Simulation();
+  Matter.Body.setPosition(s.fish,{x:834,y:350});Matter.Body.setAngle(s.fish,2.5);
+  s.launch({x:0,y:8});while(s.phase==='flying')s.step();
+  const touching=s.engine.pairs.list.filter((p:Matter.Pair)=>p.isActive).flatMap((p:Matter.Pair)=>[p.bodyA.label,p.bodyB.label]);
+  assert.ok(touching.includes('back'));assert.ok(touching.includes('tray'));
+  assert.equal(s.score!.onTray,true);assert.equal(s.score!.base,60);
+  assert.equal(s.score!.landing,0);
+  s.dispose();
+});
+
+test('resting below the tray beside the inner wall is still not a tray landing',()=>{
+  const s=new Simulation();
+  Matter.Body.setPosition(s.fish,{x:830,y:425});s.launch({x:0,y:8});
+  while(s.phase==='flying')s.step();
+  assert.equal(s.score!.inside,true);assert.equal(s.score!.onTray,false);
+  assert.equal(s.score!.base,40);s.dispose();
 });

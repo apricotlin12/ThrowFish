@@ -3,7 +3,7 @@ export const WORLD = {
   width: 960, height: 540,
   start: { x: 224, y: 358 },
   oven: { left: 628, right: 886, top: 226, bottom: 448 },
-  tray: { left: 656, right: 868, top: 398 },
+  tray: { left: 656, right: 868, top: 398, edgeAllowance: 22 },
   maxPull: 145,
 };
 
@@ -31,8 +31,10 @@ export function bounds(vertices: Point[]) {
 export function insideOven(vertices: Point[]): boolean {
   if (vertices.length < 3) return false;
   const o = WORLD.oven;
+  // Pixel rounding and the offset collider can place a resting sprite a few pixels into a wall.
+  const margin = 4;
   return vertices.every(v => Number.isFinite(v.x) && Number.isFinite(v.y) &&
-    v.x >= o.left - 1 && v.x <= o.right + 1 && v.y >= o.top - 1 && v.y <= o.bottom + 1);
+    v.x >= o.left - margin && v.x <= o.right + margin && v.y >= o.top - margin && v.y <= o.bottom + margin);
 }
 export function evaluateScore(s: FinishState): Score {
   const b = bounds(s.vertices), t = WORLD.tray;
@@ -40,7 +42,7 @@ export function evaluateScore(s: FinishState): Score {
   const footprint = bounds(visible);
   const inside = insideOven(visible);
   const onTray = inside && s.settled && !s.timedOut && s.trayContact && !s.otherSupport &&
-    footprint.minX >= t.left - 1 && footprint.maxX <= t.right + 1 && s.center.y < t.top &&
+    footprint.minX >= t.left - t.edgeAllowance && footprint.maxX <= t.right + t.edgeAllowance && s.center.y < t.top &&
     b.maxY >= t.top - 3 && b.maxY <= t.top + 3;
   const base = onTray ? 60 : inside ? 40 : 0;
   const flip = onTray ? Math.max(0, Math.floor(s.turns)) * 10 : 0;

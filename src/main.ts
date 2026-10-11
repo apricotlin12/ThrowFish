@@ -134,7 +134,7 @@ canvas.addEventListener('pointerup', event => {
   if (sim.launch({ x: d.anchor.x-d.current.x, y: d.anchor.y-d.current.y }, d.grab)) {
     sound.play('throw'); canvas.classList.add('flying');
     el('status').textContent = '魚正在飛，落盤才算數';
-    el('instruction').textContent = '✧ 花式暫存中 · 等魚完整停在烤盤上'; el('power').textContent = '這一丟，交給物理';
+    el('instruction').textContent = '✧ 花式暫存中 · 等魚停在烤盤上'; el('power').textContent = '這一丟，交給物理';
   } else { el('grab-hint').style.opacity = '1'; el('status').textContent = '拉遠一點，再試一次'; el('power').textContent = '抓中間直飛 · 抓頭尾翻轉'; }
 });
 canvas.addEventListener('pointercancel', cancelDrag);
@@ -168,7 +168,7 @@ function result(score: Score) {
     sim.finishLocation === 'out-of-view' ? '魚飛出畫面了！' :
     sim.finishLocation === 'counter' ? '魚還在料理台上。' : '還差一點，沒進烤箱。';
   el('result-title').textContent=score.total>=100?'飛行高手！':score.total>=80?'魚體操選手！':score.onTray?'魚上盤了！':score.timedOut?'還沒落穩。':score.inside?'入爐了，但沒上盤。':missedTitle;
-  el('result-description').textContent=score.onTray ? (score.total>=100?'轉幾圈就算幾圈，繼續挑戰更高分。':score.total>=80?'動作漂亮，最後也收得住。':'及格！下一條，試著加點花式。') : score.timedOut ? '等了十秒還在動，這次花式不入帳。' : sim.tracker.turns || sim.tracker.highLob || sim.tracker.bounce ? '動作很好，魚沒上盤。花式不入帳。':'整條魚停在烤盤上，才能拿到 60 分。';
+  el('result-description').textContent=score.onTray ? (score.total>=100?'轉幾圈就算幾圈，繼續挑戰更高分。':score.total>=80?'動作漂亮，最後也收得住。':'及格！下一條，試著加點花式。') : score.timedOut ? '等了十秒還在動，這次花式不入帳。' : sim.tracker.turns || sim.tracker.highLob || sim.tracker.bounce ? '動作很好，魚沒上盤。花式不入帳。':'魚要留在烤箱內、停在盤面上；稍微突出或靠內壁都可以。';
   const rows: [string,number][]=[['基礎分',score.base],['空中翻轉',score.flip],[sim.tracker.highLob?'高拋路線':'彈跳路線',score.route],['漂亮落盤',score.landing]];
   el('breakdown').replaceChildren(...rows.map(([label,value])=>{const row=document.createElement('div');if(!value)row.className='muted';const name=document.createElement('span');name.textContent=label;const number=document.createElement('span');number.textContent=`${value===0?'': '+'}${value}`;row.append(name,number);return row;}));
   for(const tag of el('tricks').children){tag.textContent=tag.textContent!.replace(' · 暫存',score.onTray?' ✓':' · 未入帳');if(!score.onTray)tag.classList.add('invalid');}
@@ -177,7 +177,7 @@ function result(score: Score) {
   el<HTMLButtonElement>('register-score').disabled = !canRegisterScore(score);
   el('registration-score').textContent = String(score.total);
   el('status').textContent=score.onTray?'成功落盤，分數入帳':'投擲結束，再來一條';
-  el('instruction').textContent = score.onTray ? '✓ 整條魚完整落盤 · 花式有效' : '↻ 再試一次，讓整條魚停在烤盤上';
+  el('instruction').textContent = score.onTray ? '✓ 成功落盤 · 花式有效' : '↻ 再試一次，讓魚停在烤盤上';
   el('power').textContent='R 快速重來';
   sound.play(score.onTray?'success':'fail');if(score.onTray)renderer.celebrate();
 }

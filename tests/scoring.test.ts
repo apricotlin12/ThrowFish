@@ -15,20 +15,20 @@ test('ordinary complete tray landing passes; each rotation earns ten points with
   assert.equal(evaluateScore(state({turns:20.9})).flip,200);
   assert.equal(evaluateScore(state({turns:20.9})).total,270);
 });
-test('tail hanging outside tray invalidates all tricks even when fish centre is above it',()=>{
-  const score=evaluateScore(state({vertices:[{x:644,y:380},{x:756,y:380},{x:756,y:402},{x:644,y:402}],turns:2,highLob:true}));
+test('substantial overhang invalidates tricks even when the fish centre is above the tray',()=>{
+  const score=evaluateScore(state({vertices:[{x:632,y:366},{x:744,y:366},{x:744,y:398},{x:632,y:398}],turns:2,highLob:true}));
   assert.equal(score.total,40);assert.equal(score.onTray,false);assert.equal(score.flip,0);assert.equal(score.route,0);
 });
 
-test('the entire visible tray rim counts, but a fish overhanging it still does not',()=>{
-  for (const left of [656,756]) {
+test('small overhangs on either edge count, while large overhangs do not',()=>{
+  for (const left of [634,656,756,778]) {
     const vertices=[{x:left,y:366},{x:left+112,y:366},{x:left+112,y:398},{x:left,y:398}];
     assert.equal(evaluateScore(state({vertices,center:{x:left+56,y:382},turns:2})).onTray,true);
   }
-  const vertices=[{x:650,y:366},{x:762,y:366},{x:762,y:398},{x:650,y:398}];
+  const vertices=[{x:633,y:366},{x:745,y:366},{x:745,y:398},{x:633,y:398}];
   assert.equal(evaluateScore(state({vertices})).onTray,false);
 });
-test('touching then sliding away, underneath tray, wall-supported and timeout are not valid landings',()=>{
+test('sliding away, underneath tray, other surfaces and timeout are not valid landings',()=>{
   for(const change of [{trayContact:false},{otherSupport:true},{settled:false},{timedOut:true},
     {center:{x:762,y:430},vertices:[{x:706,y:412},{x:818,y:412},{x:818,y:444},{x:706,y:444}]}]) {
     const score=evaluateScore(state({...change,turns:2,highLob:true}));
