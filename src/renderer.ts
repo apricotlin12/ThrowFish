@@ -1,5 +1,6 @@
 import { WORLD, type Point } from './scoring';
 import { Simulation, type Impact } from './physics';
+import { FISH_PIXELS } from './fish';
 export interface Drag { anchor: Point; current: Point; grab: Point; id: number }
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; color: string }
 const COOKED_COLORS: Record<string, string> = {
@@ -82,15 +83,7 @@ export class Renderer {
     c.scale(1+hit*.08,1-hit*.12);
     const p=(x:number,y:number,w:number,h:number,color:string)=>{c.fillStyle=cooked ? COOKED_COLORS[color] ?? color : color;c.fillRect(x,y,w,h);};
     // Pixel silhouette: tail, body, fins and an unnecessarily serious eye.
-    p(-56,-12,8,24,'#395956');p(-48,-8,8,16,'#395956');p(-40,-12,12,24,'#395956');
-    p(-28,-16,60,32,'#395956');p(32,-12,12,24,'#395956');p(44,-8,8,16,'#395956');p(52,-4,4,12,'#395956');
-    p(-52,-8,4,16,'#6b9a8d');p(-48,-4,12,8,'#80ad9d');p(-36,-8,12,16,'#8bb6a4');
-    p(-24,-12,56,24,'#84b2a2');p(32,-8,12,16,'#9ac5af');p(44,-4,8,8,'#9ac5af');
-    p(-20,4,52,8,'#c9d7b7');p(28,4,16,4,'#c9d7b7');p(-24,-12,44,4,'#659488');
-    p(-16,-20,20,4,'#527b73');p(-12,-16,24,4,'#659488');p(-12,12,16,8,'#659488');
-    p(-16,-4,4,4,'#6c9f91');p(-4,0,4,4,'#6c9f91');p(8,-4,4,4,'#6c9f91');p(-28,0,4,4,'#6c9f91');
-    p(24,-8,12,12,'#eaf0d5');p(28,-8,8,12,'#2c4746');p(28,-8,4,4,'#f9f8e8');
-    p(44,4,8,4,'#395956');p(16,-4,4,12,'#5f8e82');
+    for (const pixel of FISH_PIXELS) p(...pixel);
     c.restore();
   }
   private drawKitchen(c: CanvasRenderingContext2D) {

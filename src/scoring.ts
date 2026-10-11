@@ -9,6 +9,7 @@ export const WORLD = {
 
 export interface FinishState {
   vertices: Point[];
+  visibleVertices?: Point[];
   center: Point;
   angle: number;
   trayContact: boolean;
@@ -35,9 +36,11 @@ export function insideOven(vertices: Point[]): boolean {
 }
 export function evaluateScore(s: FinishState): Score {
   const b = bounds(s.vertices), t = WORLD.tray;
-  const inside = insideOven(s.vertices);
+  const visible = s.visibleVertices ?? s.vertices;
+  const footprint = bounds(visible);
+  const inside = insideOven(visible);
   const onTray = inside && s.settled && !s.timedOut && s.trayContact && !s.otherSupport &&
-    b.minX >= t.left - 1 && b.maxX <= t.right + 1 && s.center.y < t.top &&
+    footprint.minX >= t.left - 1 && footprint.maxX <= t.right + 1 && s.center.y < t.top &&
     b.maxY >= t.top - 3 && b.maxY <= t.top + 3;
   const base = onTray ? 60 : inside ? 40 : 0;
   const flip = onTray ? Math.max(0, Math.floor(s.turns)) * 10 : 0;

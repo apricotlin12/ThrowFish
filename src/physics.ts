@@ -1,5 +1,6 @@
 import Matter from 'matter-js';
 import { WORLD, TrickTracker, evaluateScore, bounds, type Score, type Point } from './scoring';
+import { visibleFishVertices } from './fish';
 const { Engine, Bodies, Body, Composite, Events } = Matter;
 export type Phase = 'ready' | 'dragging' | 'flying' | 'result';
 export type FinishLocation = 'oven' | 'oven-top' | 'floor' | 'counter' | 'out-of-view' | 'elsewhere';
@@ -106,7 +107,8 @@ export class Simulation {
     }
   }
   finish(timedOut: boolean) {
-    this.score = evaluateScore({ vertices: this.fish.vertices, center: this.fish.position,
+    this.score = evaluateScore({ vertices: this.fish.vertices,
+      visibleVertices: visibleFishVertices(this.fish.position, this.fish.angle), center: this.fish.position,
       angle: this.fish.angle, trayContact: this.trayContact, otherSupport: this.otherSupport,
       settled: this.stableTime >= .8, timedOut, turns: this.tracker.turns,
       highLob: this.tracker.highLob, bounce: this.tracker.bounce });

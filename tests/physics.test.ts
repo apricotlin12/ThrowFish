@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Matter from 'matter-js';
 import { Simulation } from '../src/physics';
+import { bounds, WORLD } from '../src/scoring';
+import { visibleFishVertices } from '../src/fish';
 function run(x:number,y:number,grabX=0) {
   const s=new Simulation();assert.equal(s.launch({x,y},{x:grabX,y:0}),true);
   let steps=0;
@@ -58,4 +60,23 @@ test('a whole fish resting near either visible tray rim receives tray points',()
     assert.equal(s.score!.base,60);
     s.dispose();
   }
+});
+
+test('a visible fish fully on the tray counts even if its offset collider extends past the rim',()=>{
+  const s=new Simulation();s.launch({x:96,y:-82});
+  while(s.phase==='flying')s.step();
+  assert.ok(bounds(s.fish.vertices).maxX>WORLD.tray.right+1);
+  assert.ok(bounds(visibleFishVertices(s.fish.position,s.fish.angle)).maxX<=WORLD.tray.right+1);
+  assert.equal(s.score!.onTray,true);
+  assert.equal(s.score!.base,60);
+  s.dispose();
+});
+
+test('rotating the fish does not hide a visible tail extending outside the tray',()=>{
+  const s=new Simulation();s.launch({x:68,y:-84},{x:-32,y:0});
+  while(s.phase==='flying')s.step();
+  assert.ok(bounds(visibleFishVertices(s.fish.position,s.fish.angle)).maxX>WORLD.tray.right+1);
+  assert.equal(s.score!.onTray,false);
+  assert.equal(s.score!.flip,0);
+  s.dispose();
 });
