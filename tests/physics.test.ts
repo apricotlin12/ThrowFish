@@ -48,3 +48,14 @@ test('fish inside the oven is recognized with complete and incomplete tray landi
   assert.equal(s.finishLocation,'oven');assert.equal(s.score!.inside,true);assert.equal(s.score!.onTray,false);assert.equal(s.score!.total,40);
   s.dispose();
 });
+
+test('a whole fish resting near either visible tray rim receives tray points',()=>{
+  for(const x of [714,810]) {
+    const s=new Simulation();
+    Matter.Body.setPosition(s.fish,{x,y:350});s.launch({x:0,y:8});
+    while(s.phase==='flying')s.step();
+    assert.equal(s.score!.onTray,true,`visible rim landing at x=${x}`);
+    assert.equal(s.score!.base,60);
+    s.dispose();
+  }
+});

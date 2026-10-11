@@ -123,8 +123,9 @@ export class Renderer {
     r(870,234,16,214,'#253f3c');r(628,440,258,8,'#263f3b');r(612,422,16,36,'#78947d');r(886,210,16,252,'#476858');r(902,208,10,260,'#6f8c76');
     // Interior rails and oven light.
     r(650,312,220,4,'#486951');r(650,356,220,4,'#486951');r(650,396,220,4,'#486951');r(852,254,8,8,'#d0b76f');r(848,262,16,4,'#6c7350');
-    // Baking tray; its top is the actual collision boundary at y=402.
-    r(656,398,212,4,'#c1d1bb');r(660,402,204,10,'#9fb8ac');r(672,402,178,4,'#c8d5bc');r(660,408,204,4,'#829998');r(664,412,196,4,'#567976');
+    // The visible top and full rim width are also the collision/scoring surface.
+    const tray = WORLD.tray;
+    r(tray.left,tray.top,tray.right-tray.left,4,'#c1d1bb');r(660,402,204,10,'#9fb8ac');r(672,402,178,4,'#c8d5bc');r(660,408,204,4,'#829998');r(664,412,196,4,'#567976');
     // Open oven door, lower plinth and legs.
     r(522,450,100,8,'#729181');r(532,450,72,4,'#a7b9a0');r(514,458,112,8,'#476b5c');r(522,466,100,4,'#a8b89b');
     r(626,462,286,12,'#8ca388');r(636,474,14,8,'#507461');r(880,474,14,8,'#507461');

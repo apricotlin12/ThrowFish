@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { evaluateScore, TrickTracker, type FinishState } from '../src/scoring';
 
 const state = (override: Partial<FinishState> = {}): FinishState => ({
-  vertices: [{ x:706,y:370 },{ x:818,y:370 },{ x:818,y:402 },{ x:706,y:402 }],
+  vertices: [{ x:706,y:366 },{ x:818,y:366 },{ x:818,y:398 },{ x:706,y:398 }],
   center:{ x:762,y:386 },angle:0,trayContact:true,otherSupport:false,settled:true,timedOut:false,
   turns:0,highLob:false,bounce:false,...override,
 });
@@ -18,6 +18,15 @@ test('ordinary complete tray landing passes; each rotation earns ten points with
 test('tail hanging outside tray invalidates all tricks even when fish centre is above it',()=>{
   const score=evaluateScore(state({vertices:[{x:644,y:380},{x:756,y:380},{x:756,y:402},{x:644,y:402}],turns:2,highLob:true}));
   assert.equal(score.total,40);assert.equal(score.onTray,false);assert.equal(score.flip,0);assert.equal(score.route,0);
+});
+
+test('the entire visible tray rim counts, but a fish overhanging it still does not',()=>{
+  for (const left of [656,756]) {
+    const vertices=[{x:left,y:366},{x:left+112,y:366},{x:left+112,y:398},{x:left,y:398}];
+    assert.equal(evaluateScore(state({vertices,center:{x:left+56,y:382},turns:2})).onTray,true);
+  }
+  const vertices=[{x:650,y:366},{x:762,y:366},{x:762,y:398},{x:650,y:398}];
+  assert.equal(evaluateScore(state({vertices})).onTray,false);
 });
 test('touching then sliding away, underneath tray, wall-supported and timeout are not valid landings',()=>{
   for(const change of [{trayContact:false},{otherSupport:true},{settled:false},{timedOut:true},

@@ -3,7 +3,7 @@ export const WORLD = {
   width: 960, height: 540,
   start: { x: 224, y: 358 },
   oven: { left: 628, right: 886, top: 226, bottom: 448 },
-  tray: { left: 660, right: 864, top: 402 },
+  tray: { left: 656, right: 868, top: 398 },
   maxPull: 145,
 };
 

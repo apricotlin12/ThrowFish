@@ -30,7 +30,8 @@ export class Simulation {
     Composite.add(this.engine.world, [
       solid(757, 218, 286, 16, 'roof'), solid(894, 336, 16, 252, 'back'),
       solid(757, 458, 286, 20, 'oven-floor'), solid(620, 440, 16, 36, 'lip'),
-      solid(762, 408, 204, 12, 'tray', .05), solid(480, 492, 1080, 24, 'floor', .3),
+      solid((WORLD.tray.left + WORLD.tray.right) / 2, WORLD.tray.top + 8,
+        WORLD.tray.right - WORLD.tray.left, 16, 'tray', .05), solid(480, 492, 1080, 24, 'floor', .3),
       solid(110, 406, 172, 12, 'counter', .45),
     ]);
     const shape = [
